@@ -1,19 +1,26 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
-#include "core/arm/arm_interface.h"
-#include "core/arm/skyeye_common/armdefs.h"
+#include "common/common_types.h"
+
+class ARM_Interface;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace Core {
 
-enum CPUCore {
-    CPU_Interpreter,
-    CPU_FastInterpreter
+struct ThreadContext {
+    u32 cpu_registers[13];
+    u32 sp;
+    u32 lr;
+    u32 pc;
+    u32 cpsr;
+    u32 fpu_registers[32];
+    u32 fpscr;
+    u32 fpexc;
 };
 
 extern ARM_Interface*   g_app_core;     ///< ARM11 application core

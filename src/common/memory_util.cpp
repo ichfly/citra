@@ -1,18 +1,22 @@
-// Copyright 2013 Dolphin Emulator Project
-// Licensed under GPLv2
+// Copyright 2013 Dolphin Emulator Project / 2014 Citra Emulator Project
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 
-#include "common/common.h"
+#include "common/logging/log.h"
 #include "common/memory_util.h"
-#include "common/string_util.h"
 
 #ifdef _WIN32
-#include <windows.h>
-#include <psapi.h>
+    #include <windows.h>
+    #include <psapi.h>
+    #include "common/common_funcs.h"
+    #include "common/string_util.h"
+#else
+    #include <cstdlib>
+    #include <sys/mman.h>
 #endif
 
-#if !defined(_WIN32) && defined(__x86_64__) && !defined(MAP_32BIT)
+#if !defined(_WIN32) && defined(ARCHITECTURE_X64) && !defined(MAP_32BIT)
 #include <unistd.h>
 #define PAGE_MASK     (getpagesize() - 1)
 #define round_page(x) ((((unsigned long)(x)) + PAGE_MASK) & ~(PAGE_MASK))
@@ -24,10 +28,10 @@
 void* AllocateExecutableMemory(size_t size, bool low)
 {
 #if defined(_WIN32)
-    void* ptr = VirtualAlloc(0, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    void* ptr = VirtualAlloc(nullptr, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 #else
-    static char *map_hint = 0;
-#if defined(__x86_64__) && !defined(MAP_32BIT)
+    static char* map_hint = nullptr;
+#if defined(ARCHITECTURE_X64) && !defined(MAP_32BIT)
     // This OS has no flag to enforce allocation below the 4 GB boundary,
     // but if we hint that we want a low address it is very likely we will
     // get one.
@@ -39,14 +43,11 @@ void* AllocateExecutableMemory(size_t size, bool low)
 #endif
     void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC,
         MAP_ANON | MAP_PRIVATE
-#if defined(__x86_64__) && defined(MAP_32BIT)
+#if defined(ARCHITECTURE_X64) && defined(MAP_32BIT)
         | (low ? MAP_32BIT : 0)
 #endif
         , -1, 0);
 #endif /* defined(_WIN32) */
-
-    // printf("Mapped executable memory at %p (size %ld)\n", ptr,
-    //    (unsigned long)size);
 
 #ifdef _WIN32
     if (ptr == nullptr)
@@ -56,23 +57,22 @@ void* AllocateExecutableMemory(size_t size, bool low)
     {
         ptr = nullptr;
 #endif
-        PanicAlert("Failed to allocate executable memory");
+        LOG_ERROR(Common_Memory, "Failed to allocate executable memory");
     }
-#if !defined(_WIN32) && defined(__x86_64__) && !defined(MAP_32BIT)
+#if !defined(_WIN32) && defined(ARCHITECTURE_X64) && !defined(MAP_32BIT)
     else
     {
         if (low)
         {
             map_hint += size;
             map_hint = (char*)round_page(map_hint); /* round up to the next page */
-            // printf("Next map will (hopefully) be at %p\n", map_hint);
         }
     }
 #endif
 
-#if defined(_M_X64)
+#if EMU_ARCH_BITS == 64
     if ((u64)ptr >= 0x80000000 && low == true)
-        PanicAlert("Executable memory ended up above 2GB!");
+        LOG_ERROR(Common_Memory, "Executable memory ended up above 2GB!");
 #endif
 
     return ptr;
@@ -81,20 +81,17 @@ void* AllocateExecutableMemory(size_t size, bool low)
 void* AllocateMemoryPages(size_t size)
 {
 #ifdef _WIN32
-    void* ptr = VirtualAlloc(0, size, MEM_COMMIT, PAGE_READWRITE);
+    void* ptr = VirtualAlloc(nullptr, size, MEM_COMMIT, PAGE_READWRITE);
 #else
-    void* ptr = mmap(0, size, PROT_READ | PROT_WRITE,
+    void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE,
             MAP_ANON | MAP_PRIVATE, -1, 0);
 
     if (ptr == MAP_FAILED)
         ptr = nullptr;
 #endif
 
-    // printf("Mapped memory at %p (size %ld)\n", ptr,
-    //    (unsigned long)size);
-
     if (ptr == nullptr)
-        PanicAlert("Failed to allocate raw memory");
+        LOG_ERROR(Common_Memory, "Failed to allocate raw memory");
 
     return ptr;
 }
@@ -109,15 +106,12 @@ void* AllocateAlignedMemory(size_t size,size_t alignment)
     ptr = memalign(alignment, size);
 #else
     if (posix_memalign(&ptr, alignment, size) != 0)
-        ERROR_LOG(MEMMAP, "Failed to allocate aligned memory");
+        LOG_ERROR(Common_Memory, "Failed to allocate aligned memory");
 #endif
 #endif
-
-    // printf("Mapped memory at %p (size %ld)\n", ptr,
-    //    (unsigned long)size);
 
     if (ptr == nullptr)
-        PanicAlert("Failed to allocate aligned memory");
+        LOG_ERROR(Common_Memory, "Failed to allocate aligned memory");
 
     return ptr;
 }
@@ -127,11 +121,8 @@ void FreeMemoryPages(void* ptr, size_t size)
     if (ptr)
     {
 #ifdef _WIN32
-
         if (!VirtualFree(ptr, 0, MEM_RELEASE))
-            PanicAlert("FreeMemoryPages failed!\n%s", GetLastErrorMsg());
-        ptr = nullptr; // Is this our responsibility?
-
+            LOG_ERROR(Common_Memory, "FreeMemoryPages failed!\n%s", GetLastErrorMsg());
 #else
         munmap(ptr, size);
 #endif
@@ -155,7 +146,7 @@ void WriteProtectMemory(void* ptr, size_t size, bool allowExecute)
 #ifdef _WIN32
     DWORD oldValue;
     if (!VirtualProtect(ptr, size, allowExecute ? PAGE_EXECUTE_READ : PAGE_READONLY, &oldValue))
-        PanicAlert("WriteProtectMemory failed!\n%s", GetLastErrorMsg());
+        LOG_ERROR(Common_Memory, "WriteProtectMemory failed!\n%s", GetLastErrorMsg());
 #else
     mprotect(ptr, size, allowExecute ? (PROT_READ | PROT_EXEC) : PROT_READ);
 #endif
@@ -166,7 +157,7 @@ void UnWriteProtectMemory(void* ptr, size_t size, bool allowExecute)
 #ifdef _WIN32
     DWORD oldValue;
     if (!VirtualProtect(ptr, size, allowExecute ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldValue))
-        PanicAlert("UnWriteProtectMemory failed!\n%s", GetLastErrorMsg());
+        LOG_ERROR(Common_Memory, "UnWriteProtectMemory failed!\n%s", GetLastErrorMsg());
 #else
     mprotect(ptr, size, allowExecute ? (PROT_READ | PROT_WRITE | PROT_EXEC) : PROT_WRITE | PROT_READ);
 #endif

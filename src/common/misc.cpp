@@ -1,11 +1,14 @@
-// Copyright 2013 Dolphin Emulator Project
-// Licensed under GPLv2
+// Copyright 2013 Dolphin Emulator Project / 2014 Citra Emulator Project
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include "common/common.h"
+#include <cstddef>
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <cerrno>
+#include <cstring>
 #endif
 
 // Neither Android nor OS X support TLS

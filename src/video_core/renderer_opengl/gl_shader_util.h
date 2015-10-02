@@ -1,10 +1,10 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
-#include "generated/gl_3_2_core.h"
+#include <glad/glad.h>
 
 namespace ShaderUtil {
 

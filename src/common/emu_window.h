@@ -1,13 +1,20 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
-#include "common/common.h"
-#include "common/scm_rev.h"
-#include "common/string_util.h"
-#include "common/key_map.h"
+#include <tuple>
+#include <utility>
+
+#include "common/common_types.h"
+#include "common/math_util.h"
+
+#include "core/hle/service/hid/hid.h"
+
+namespace KeyMap {
+struct HostDeviceKey;
+}
 
 /**
  * Abstraction class used to provide an interface between emulation code and the frontend
@@ -38,6 +45,23 @@ public:
         std::pair<unsigned,unsigned> min_client_area_size;
     };
 
+    /// Describes the layout of the window framebuffer (size and top/bottom screen positions)
+    struct FramebufferLayout {
+
+        /**
+         * Factory method for constructing a default FramebufferLayout
+         * @param width Window framebuffer width in pixels
+         * @param height Window framebuffer height in pixels
+         * @return Newly created FramebufferLayout object with default screen regions initialized
+         */
+        static FramebufferLayout DefaultScreenLayout(unsigned width, unsigned height);
+
+        unsigned width;
+        unsigned height;
+        MathUtil::Rectangle<unsigned> top_screen;
+        MathUtil::Rectangle<unsigned> bottom_screen;
+    };
+
     /// Swap buffers to display the next frame
     virtual void SwapBuffers() = 0;
 
@@ -53,10 +77,48 @@ public:
     virtual void ReloadSetKeymaps() = 0;
 
     /// Signals a key press action to the HID module
-    static void KeyPressed(KeyMap::HostDeviceKey key);
+    void KeyPressed(KeyMap::HostDeviceKey key);
 
     /// Signals a key release action to the HID module
-    static void KeyReleased(KeyMap::HostDeviceKey key);
+    void KeyReleased(KeyMap::HostDeviceKey key);
+
+    /**
+     * Signal that a touch pressed event has occurred (e.g. mouse click pressed)
+     * @param framebuffer_x Framebuffer x-coordinate that was pressed
+     * @param framebuffer_y Framebuffer y-coordinate that was pressed
+     */
+    void TouchPressed(unsigned framebuffer_x, unsigned framebuffer_y);
+
+    /// Signal that a touch released event has occurred (e.g. mouse click released)
+    void TouchReleased();
+
+    /**
+     * Signal that a touch movement event has occurred (e.g. mouse was moved over the emu window)
+     * @param framebuffer_x Framebuffer x-coordinate
+     * @param framebuffer_y Framebuffer y-coordinate
+     */
+    void TouchMoved(unsigned framebuffer_x, unsigned framebuffer_y);
+
+    /**
+     * Gets the current pad state (which buttons are pressed and the circle pad direction).
+     * @note This should be called by the core emu thread to get a state set by the window thread.
+     * @todo Fix this function to be thread-safe.
+     * @return PadState object indicating the current pad state
+     */
+    const Service::HID::PadState GetPadState() const {
+        return pad_state;
+    }
+
+    /**
+     * Gets the current touch screen state (touch X/Y coordinates and whether or not it is pressed).
+     * @note This should be called by the core emu thread to get a state set by the window thread.
+     * @todo Fix this function to be thread-safe.
+     * @return std::tuple of (x, y, pressed) where `x` and `y` are the touch coordinates and
+     *         `pressed` is true if the touch screen is currently being pressed
+     */
+    const std::tuple<u16, u16, bool> GetTouchState() const {
+        return std::make_tuple(touch_x, touch_y, touch_pressed);
+    }
 
     /**
      * Returns currently active configuration.
@@ -75,28 +137,22 @@ public:
     }
 
     /**
-      * Gets the framebuffer size in pixels.
+      * Gets the framebuffer layout (width, height, and screen regions)
       * @note This method is thread-safe
       */
-    const std::pair<unsigned,unsigned> GetFramebufferSize() const {
-        return framebuffer_size;
-    }
-
-    /**
-     * Gets window client area width in logical coordinates.
-     * @note For high-DPI systems, this is smaller than the framebuffer size.
-     * @note This method is thread-safe
-     */
-    std::pair<unsigned,unsigned> GetClientAreaSize() const {
-        return std::make_pair(client_area_width, client_area_height);
+    const FramebufferLayout& GetFramebufferLayout() const {
+        return framebuffer_layout;
     }
 
 protected:
-    EmuWindow()
-    {
+    EmuWindow() {
         // TODO: Find a better place to set this.
         config.min_client_area_size = std::make_pair(400u, 480u);
         active_config = config;
+        pad_state.hex = 0;
+        touch_x = 0;
+        touch_y = 0;
+        touch_pressed = false;
     }
     virtual ~EmuWindow() {}
 
@@ -118,11 +174,11 @@ protected:
     }
 
     /**
-     * Update internal framebuffer size with the given parameter.
+     * Update framebuffer layout with the given parameter.
      * @note EmuWindow implementations will usually use this in window resize event handlers.
      */
-    void NotifyFramebufferSizeChanged(const std::pair<unsigned,unsigned>& size) {
-        framebuffer_size = size;
+    void NotifyFramebufferLayoutChanged(const FramebufferLayout& layout) {
+        framebuffer_layout = layout;
     }
 
     /**
@@ -143,11 +199,23 @@ private:
         // By default, ignore this request and do nothing.
     }
 
-    std::pair<unsigned,unsigned> framebuffer_size;
+    FramebufferLayout framebuffer_layout; ///< Current framebuffer layout
 
     unsigned client_area_width;    ///< Current client width, should be set by window impl.
     unsigned client_area_height;   ///< Current client height, should be set by window impl.
 
     WindowConfig config;         ///< Internal configuration (changes pending for being applied in ProcessConfigurationChanges)
     WindowConfig active_config;  ///< Internal active configuration
+
+    bool touch_pressed;          ///< True if touchpad area is currently pressed, otherwise false
+
+    u16 touch_x;    ///< Touchpad X-position in native 3DS pixel coordinates (0-320)
+    u16 touch_y;    ///< Touchpad Y-position in native 3DS pixel coordinates (0-240)
+
+   /**
+    * Clip the provided coordinates to be inside the touchscreen area.
+    */
+    std::tuple<unsigned,unsigned> ClipToTouchScreen(unsigned new_x, unsigned new_y);
+
+    Service::HID::PadState pad_state;
 };

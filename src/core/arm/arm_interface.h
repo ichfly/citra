@@ -1,13 +1,15 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
-#include "common/common.h"
 #include "common/common_types.h"
+#include "core/arm/skyeye_common/arm_regformat.h"
 
-#include "core/hle/svc.h"
+namespace Core {
+    struct ThreadContext;
+}
 
 /// Generic ARM11 CPU interface
 class ARM_Interface : NonCopyable {
@@ -60,6 +62,34 @@ public:
     virtual void SetReg(int index, u32 value) = 0;
 
     /**
+     * Gets the value of a VFP register
+     * @param index Register index (0-31)
+     * @return Returns the value in the register
+     */
+    virtual u32 GetVFPReg(int index) const = 0;
+
+    /**
+     * Sets a VFP register to the given value
+     * @param index Register index (0-31)
+     * @param value Value to set register to
+     */
+    virtual void SetVFPReg(int index, u32 value) = 0;
+
+    /**
+     * Gets the current value within a given VFP system register
+     * @param reg The VFP system register
+     * @return The value within the VFP system register
+     */
+    virtual u32 GetVFPSystemReg(VFPSystemRegister reg) const = 0;
+
+    /**
+     * Sets the VFP system register to the given value
+     * @param reg   The VFP system register
+     * @param value Value to set the VFP system register to
+     */
+    virtual void SetVFPSystemReg(VFPSystemRegister reg, u32 value) = 0;
+
+    /**
      * Get the current CPSR register
      * @return Returns the value of the CPSR register
      */
@@ -72,22 +102,45 @@ public:
     virtual void SetCPSR(u32 cpsr) = 0;
 
     /**
-     * Returns the number of clock ticks since the last rese
-     * @return Returns number of clock ticks
+     * Gets the value stored in a CP15 register.
+     * @param reg The CP15 register to retrieve the value from.
+     * @return the value stored in the given CP15 register.
      */
-    virtual u64 GetTicks() const = 0;
+    virtual u32 GetCP15Register(CP15Register reg) = 0;
+
+    /**
+     * Stores the given value into the indicated CP15 register.
+     * @param reg   The CP15 register to store the value into.
+     * @param value The value to store into the CP15 register.
+     */
+    virtual void SetCP15Register(CP15Register reg, u32 value) = 0;
+
+    /**
+     * Advance the CPU core by the specified number of ticks (e.g. to simulate CPU execution time)
+     * @param ticks Number of ticks to advance the CPU core
+     */
+    virtual void AddTicks(u64 ticks) = 0;
+
+    /**
+     * Initializes a CPU context for use on this CPU
+     * @param context Thread context to reset
+     * @param stack_top Pointer to the top of the stack
+     * @param entry_point Entry point for execution
+     * @param arg User argument for thread
+     */
+    virtual void ResetContext(Core::ThreadContext& context, u32 stack_top, u32 entry_point, u32 arg) = 0;
 
     /**
      * Saves the current CPU context
      * @param ctx Thread context to save
      */
-    virtual void SaveContext(ThreadContext& ctx) = 0;
+    virtual void SaveContext(Core::ThreadContext& ctx) = 0;
 
     /**
      * Loads a CPU context
      * @param ctx Thread context to load
      */
-    virtual void LoadContext(const ThreadContext& ctx) = 0;
+    virtual void LoadContext(const Core::ThreadContext& ctx) = 0;
 
     /// Prepare core for thread reschedule (if needed to correctly handle state)
     virtual void PrepareReschedule() = 0;
@@ -96,6 +149,8 @@ public:
     u64 GetNumInstructions() {
         return num_instructions;
     }
+
+    s64 down_count; ///< A decreasing counter of remaining cycles before the next event, decreased by the cpu run loop
 
 protected:
 

@@ -24,28 +24,26 @@
 * @date 2011-11-07
 */
 
-#ifndef __ARM_DYNCOM_THUMB_H__
-#define __ARM_DYNCOM_THUMB_H__
+#pragma once
 
-#include "core/arm/skyeye_common/armdefs.h"
-#include "core/arm/skyeye_common/skyeye_types.h"
+#include "common/common_types.h"
 
-enum tdstate {
-    t_undefined,    // Undefined Thumb instruction
-    t_decoded,      // Instruction decoded to ARM equivalent
-    t_branch,       // Thumb branch (already processed)
-    t_uninitialized,
+enum class ThumbDecodeStatus {
+    UNDEFINED,    // Undefined Thumb instruction
+    DECODED,      // Instruction decoded to ARM equivalent
+    BRANCH,       // Thumb branch (already processed)
+    UNINITIALIZED,
 };
 
-tdstate
-thumb_translate(addr_t addr, uint32_t instr, uint32_t* ainstr, uint32_t* inst_size);
-static inline uint32 get_thumb_instr(uint32 instr, addr_t pc){
-    uint32 tinstr;
-    if ((pc & 0x3) != 0)
-        tinstr = instr >> 16;
-    else
-        tinstr = instr & 0xFFFF;
-    return tinstr;
-}
+// Translates a Thumb mode instruction into its ARM equivalent.
+ThumbDecodeStatus TranslateThumbInstruction(u32 addr, u32 instr, u32* ainstr, u32* inst_size);
 
-#endif
+static inline u32 GetThumbInstruction(u32 instr, u32 address) {
+    // Normally you would need to handle instruction endianness,
+    // however, it is fixed to little-endian on the MPCore, so
+    // there's no need to check for this beforehand.
+    if ((address & 0x3) != 0)
+        return instr >> 16;
+
+    return instr & 0xFFFF;
+}

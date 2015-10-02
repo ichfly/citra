@@ -1,5 +1,5 @@
-// Copyright 2013 Dolphin Emulator Project
-// Licensed under GPLv2
+// Copyright 2013 Dolphin Emulator Project / 2014 Citra Emulator Project
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #include <time.h>
@@ -12,9 +12,9 @@
 #include <sys/time.h>
 #endif
 
-#include "common/common.h"
-#include "common/timer.h"
+#include "common/common_types.h"
 #include "common/string_util.h"
+#include "common/timer.h"
 
 namespace Common
 {

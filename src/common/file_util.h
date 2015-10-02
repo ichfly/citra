@@ -1,18 +1,18 @@
-// Copyright 2013 Dolphin Emulator Project
-// Licensed under GPLv2
+// Copyright 2013 Dolphin Emulator Project / 2014 Citra Emulator Project
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
 #include <array>
 #include <fstream>
+#include <functional>
+#include <cstddef>
 #include <cstdio>
-#include <cstring>
 #include <string>
 #include <vector>
 
-#include "common/common.h"
-#include "common/string_util.h"
+#include "common/common_types.h"
 
 // User directory indices for GetUserPath
 enum {
@@ -27,6 +27,8 @@ enum {
     D_STATESAVES_IDX,
     D_SCREENSHOTS_IDX,
     D_SDMC_IDX,
+    D_NAND_IDX,
+    D_SYSDATA_IDX,
     D_HIRESTEXTURES_IDX,
     D_DUMP_IDX,
     D_DUMPFRAMES_IDX,
@@ -95,9 +97,28 @@ bool Copy(const std::string &srcFilename, const std::string &destFilename);
 // creates an empty file filename, returns true on success
 bool CreateEmptyFile(const std::string &filename);
 
-// Scans the directory tree gets, starting from _Directory and adds the
-// results into parentEntry. Returns the number of files+directories found
-u32 ScanDirectoryTree(const std::string &directory, FSTEntry& parentEntry);
+/**
+ * Scans the directory tree, calling the callback for each file/directory found.
+ * The callback must return the number of files and directories which the provided path contains.
+ * If the callback's return value is -1, the callback loop is broken immediately.
+ * If the callback's return value is otherwise negative, the callback loop is broken immediately
+ * and the callback's return value is returned from this function (to allow for error handling).
+ * @param directory the parent directory to start scanning from
+ * @param callback The callback which will be called for each file/directory. It is called
+ *     with the arguments (const std::string& directory, const std::string& virtual_name).
+ *     The `directory `parameter is the path to the directory which contains the file/directory.
+ *     The `virtual_name` parameter is the incomplete file path, without any directory info.
+ * @return the total number of files/directories found
+ */
+int ScanDirectoryTreeAndCallback(const std::string &directory, std::function<int(const std::string&, const std::string&)> callback);
+
+/**
+ * Scans the directory tree, storing the results.
+ * @param directory the parent directory to start scanning from
+ * @param parent_entry FSTEntry where the filesystem tree results will be stored.
+ * @return the total number of files/directories found
+ */
+int ScanDirectoryTree(const std::string &directory, FSTEntry& parent_entry);
 
 // deletes the given directory and anything under it. Returns true on success.
 bool DeleteDirRecursively(const std::string &directory);
@@ -114,9 +135,6 @@ bool SetCurrentDir(const std::string &directory);
 // Returns a pointer to a string with a Citra data dir in the user's home
 // directory. To be used in "multi-user" mode (that is, installed).
 const std::string& GetUserPath(const unsigned int DirIDX, const std::string &newPath="");
-
-// probably doesn't belong here
-//std::string GetThemeDir(const std::string& theme_name);
 
 // Returns the path to where the sys file are
 std::string GetSysDirectory();
@@ -180,6 +198,10 @@ public:
     template <typename T>
     size_t WriteArray(const T* data, size_t length)
     {
+        static_assert(std::is_standard_layout<T>::value, "Given array does not consist of standard layout objects");
+        // TODO: gcc 4.8 does not support is_trivially_copyable, but we really should check for it here.
+        //static_assert(std::is_trivially_copyable<T>::value, "Given array does not consist of trivially copyable objects");
+
         if (!IsOpen()) {
             m_good = false;
             return -1;
@@ -200,6 +222,12 @@ public:
     size_t WriteBytes(const void* data, size_t length)
     {
         return WriteArray(reinterpret_cast<const char*>(data), length);
+    }
+
+    template<typename T>
+    size_t WriteObject(const T& object) {
+        static_assert(!std::is_pointer<T>::value, "Given object is a pointer");
+        return WriteArray(&object, 1);
     }
 
     bool IsOpen() { return nullptr != m_file; }
@@ -236,7 +264,7 @@ private:
 template <typename T>
 void OpenFStream(T& fstream, const std::string& filename, std::ios_base::openmode openmode)
 {
-#ifdef _WIN32
+#ifdef _MSC_VER
     fstream.open(Common::UTF8ToTStr(filename).c_str(), openmode);
 #else
     fstream.open(filename.c_str(), openmode);

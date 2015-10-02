@@ -1,14 +1,12 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
-#include <map>
+#include <string>
 
-#include <inih/cpp/INIReader.h>
-
-#include "common/common_types.h"
+class INIReader;
 
 class Config {
     INIReader* glfw_config;

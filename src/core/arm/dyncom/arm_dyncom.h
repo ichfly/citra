@@ -1,5 +1,5 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
@@ -9,82 +9,40 @@
 #include "common/common_types.h"
 
 #include "core/arm/arm_interface.h"
-#include "core/arm/skyeye_common/armdefs.h"
+#include "core/arm/skyeye_common/arm_regformat.h"
+#include "core/arm/skyeye_common/armstate.h"
+
+namespace Core {
+struct ThreadContext;
+}
 
 class ARM_DynCom final : virtual public ARM_Interface {
 public:
-
-    ARM_DynCom();
+    ARM_DynCom(PrivilegeMode initial_mode);
     ~ARM_DynCom();
 
-    /**
-     * Set the Program Counter to an address
-     * @param pc Address to set PC to
-     */
     void SetPC(u32 pc) override;
-
-    /*
-     * Get the current Program Counter
-     * @return Returns current PC
-     */
-    u32 GetPC() const;
-
-    /**
-     * Get an ARM register
-     * @param index Register index (0-15)
-     * @return Returns the value in the register
-     */
-    u32 GetReg(int index) const;
-
-    /**
-     * Set an ARM register
-     * @param index Register index (0-15)
-     * @param value Value to set register to
-     */
+    u32 GetPC() const override;
+    u32 GetReg(int index) const override;
     void SetReg(int index, u32 value) override;
-
-    /**
-     * Get the current CPSR register
-     * @return Returns the value of the CPSR register
-     */
-    u32 GetCPSR() const;
-
-    /**
-     * Set the current CPSR register
-     * @param cpsr Value to set CPSR to
-     */
+    u32 GetVFPReg(int index) const override;
+    void SetVFPReg(int index, u32 value) override;
+    u32 GetVFPSystemReg(VFPSystemRegister reg) const override;
+    void SetVFPSystemReg(VFPSystemRegister reg, u32 value) override;
+    u32 GetCPSR() const override;
     void SetCPSR(u32 cpsr) override;
+    u32 GetCP15Register(CP15Register reg) override;
+    void SetCP15Register(CP15Register reg, u32 value) override;
 
-    /**
-     * Returns the number of clock ticks since the last reset
-     * @return Returns number of clock ticks
-     */
-    u64 GetTicks() const;
+    void AddTicks(u64 ticks) override;
 
-    /**
-     * Saves the current CPU context
-     * @param ctx Thread context to save
-     */
-    void SaveContext(ThreadContext& ctx) override;
+    void ResetContext(Core::ThreadContext& context, u32 stack_top, u32 entry_point, u32 arg) override;
+    void SaveContext(Core::ThreadContext& ctx) override;
+    void LoadContext(const Core::ThreadContext& ctx) override;
 
-    /**
-     * Loads a CPU context
-     * @param ctx Thread context to load
-     */
-    void LoadContext(const ThreadContext& ctx) override;
-
-    /// Prepare core for thread reschedule (if needed to correctly handle state)
     void PrepareReschedule() override;
-
-    /**
-     * Executes the given number of instructions
-     * @param num_instructions Number of instructions to executes
-     */
     void ExecuteInstructions(int num_instructions) override;
 
 private:
-
     std::unique_ptr<ARMul_State> state;
-    u64 ticks;
-
 };

@@ -4,75 +4,125 @@ set(SRCS
             arm/dyncom/arm_dyncom.cpp
             arm/dyncom/arm_dyncom_dec.cpp
             arm/dyncom/arm_dyncom_interpreter.cpp
-            arm/dyncom/arm_dyncom_run.cpp
             arm/dyncom/arm_dyncom_thumb.cpp
-            arm/interpreter/arm_interpreter.cpp
-            arm/interpreter/armcopro.cpp
-            arm/interpreter/armemu.cpp
-            arm/interpreter/arminit.cpp
-            arm/interpreter/armsupp.cpp
-            arm/interpreter/armvirt.cpp
-            arm/interpreter/thumbemu.cpp
+            arm/skyeye_common/armstate.cpp
+            arm/skyeye_common/armsupp.cpp
             arm/skyeye_common/vfp/vfp.cpp
             arm/skyeye_common/vfp/vfpdouble.cpp
             arm/skyeye_common/vfp/vfpinstr.cpp
             arm/skyeye_common/vfp/vfpsingle.cpp
+            core.cpp
+            core_timing.cpp
+            file_sys/archive_backend.cpp
+            file_sys/archive_extsavedata.cpp
             file_sys/archive_romfs.cpp
+            file_sys/archive_savedata.cpp
+            file_sys/archive_savedatacheck.cpp
             file_sys/archive_sdmc.cpp
-            file_sys/file_romfs.cpp
-            file_sys/file_sdmc.cpp
-            file_sys/directory_romfs.cpp
-            file_sys/directory_sdmc.cpp
+            file_sys/archive_systemsavedata.cpp
+            file_sys/disk_archive.cpp
+            file_sys/ivfc_archive.cpp
+            hle/config_mem.cpp
+            hle/hle.cpp
+            hle/applets/applet.cpp
+            hle/applets/swkbd.cpp
             hle/kernel/address_arbiter.cpp
-            hle/kernel/archive.cpp
             hle/kernel/event.cpp
             hle/kernel/kernel.cpp
+            hle/kernel/memory.cpp
             hle/kernel/mutex.cpp
+            hle/kernel/process.cpp
+            hle/kernel/resource_limit.cpp
+            hle/kernel/semaphore.cpp
+            hle/kernel/session.cpp
             hle/kernel/shared_memory.cpp
             hle/kernel/thread.cpp
+            hle/kernel/timer.cpp
+            hle/kernel/vm_manager.cpp
             hle/service/ac_u.cpp
-            hle/service/am_net.cpp
-            hle/service/apt_u.cpp
-            hle/service/boss_u.cpp
-            hle/service/cfg_i.cpp
-            hle/service/cfg_u.cpp
+            hle/service/act_u.cpp
+            hle/service/am/am.cpp
+            hle/service/am/am_app.cpp
+            hle/service/am/am_net.cpp
+            hle/service/am/am_sys.cpp
+            hle/service/am/am_u.cpp
+            hle/service/apt/apt.cpp
+            hle/service/apt/apt_a.cpp
+            hle/service/apt/apt_s.cpp
+            hle/service/apt/apt_u.cpp
+            hle/service/boss/boss.cpp
+            hle/service/boss/boss_p.cpp
+            hle/service/boss/boss_u.cpp
+            hle/service/cam/cam.cpp
+            hle/service/cam/cam_c.cpp
+            hle/service/cam/cam_q.cpp
+            hle/service/cam/cam_s.cpp
+            hle/service/cam/cam_u.cpp
+            hle/service/cecd/cecd.cpp
+            hle/service/cecd/cecd_s.cpp
+            hle/service/cecd/cecd_u.cpp
+            hle/service/cfg/cfg.cpp
+            hle/service/cfg/cfg_i.cpp
+            hle/service/cfg/cfg_s.cpp
+            hle/service/cfg/cfg_u.cpp
             hle/service/csnd_snd.cpp
             hle/service/dsp_dsp.cpp
             hle/service/err_f.cpp
-            hle/service/fs_user.cpp
-            hle/service/frd_u.cpp
+            hle/service/frd/frd.cpp
+            hle/service/frd/frd_a.cpp
+            hle/service/frd/frd_u.cpp
+            hle/service/fs/archive.cpp
+            hle/service/fs/fs_user.cpp
             hle/service/gsp_gpu.cpp
-            hle/service/hid_user.cpp
-            hle/service/ir_rst.cpp
-            hle/service/ir_u.cpp
+            hle/service/gsp_lcd.cpp
+            hle/service/hid/hid.cpp
+            hle/service/hid/hid_spvr.cpp
+            hle/service/hid/hid_user.cpp
+            hle/service/http_c.cpp
+            hle/service/ir/ir.cpp
+            hle/service/ir/ir_rst.cpp
+            hle/service/ir/ir_u.cpp
+            hle/service/ir/ir_user.cpp
+            hle/service/ldr_ro.cpp
             hle/service/mic_u.cpp
             hle/service/ndm_u.cpp
+            hle/service/news/news.cpp
+            hle/service/news/news_s.cpp
+            hle/service/news/news_u.cpp
+            hle/service/nim/nim.cpp
+            hle/service/nim/nim_aoc.cpp
+            hle/service/nim/nim_s.cpp
+            hle/service/nim/nim_u.cpp
+            hle/service/ns_s.cpp
             hle/service/nwm_uds.cpp
             hle/service/pm_app.cpp
-            hle/service/ptm_u.cpp
+            hle/service/ptm/ptm.cpp
+            hle/service/ptm/ptm_play.cpp
+            hle/service/ptm/ptm_sysm.cpp
+            hle/service/ptm/ptm_u.cpp
             hle/service/service.cpp
             hle/service/soc_u.cpp
             hle/service/srv.cpp
             hle/service/ssl_c.cpp
-            hle/config_mem.cpp
-            hle/hle.cpp
+            hle/service/y2r_u.cpp
+            hle/shared_page.cpp
             hle/svc.cpp
             hw/gpu.cpp
             hw/hw.cpp
-            hw/ndma.cpp
+            hw/lcd.cpp
+            hw/y2r.cpp
+            loader/3dsx.cpp
             loader/elf.cpp
             loader/loader.cpp
             loader/ncch.cpp
-            loader/3dsx.cpp
-            core.cpp
-            core_timing.cpp
-            mem_map.cpp
-            mem_map_funcs.cpp
+            tracer/recorder.cpp
+            memory.cpp
             settings.cpp
             system.cpp
             )
 
 set(HEADERS
+            arm/arm_interface.h
             arm/disassembler/arm_disasm.h
             arm/disassembler/load_symbol_map.h
             arm/dyncom/arm_dyncom.h
@@ -80,74 +130,124 @@ set(HEADERS
             arm/dyncom/arm_dyncom_interpreter.h
             arm/dyncom/arm_dyncom_run.h
             arm/dyncom/arm_dyncom_thumb.h
-            arm/interpreter/arm_interpreter.h
             arm/skyeye_common/arm_regformat.h
-            arm/skyeye_common/armcpu.h
-            arm/skyeye_common/armdefs.h
-            arm/skyeye_common/armemu.h
-            arm/skyeye_common/armmmu.h
-            arm/skyeye_common/armos.h
-            arm/skyeye_common/skyeye_defs.h
-            arm/skyeye_common/skyeye_types.h
+            arm/skyeye_common/armstate.h
+            arm/skyeye_common/armsupp.h
             arm/skyeye_common/vfp/asm_vfp.h
             arm/skyeye_common/vfp/vfp.h
             arm/skyeye_common/vfp/vfp_helper.h
-            arm/arm_interface.h
-            file_sys/archive.h
+            core.h
+            core_timing.h
+            file_sys/archive_backend.h
+            file_sys/archive_extsavedata.h
             file_sys/archive_romfs.h
+            file_sys/archive_savedata.h
+            file_sys/archive_savedatacheck.h
             file_sys/archive_sdmc.h
-            file_sys/file.h
-            file_sys/file_romfs.h
-            file_sys/file_sdmc.h
-            file_sys/directory.h
-            file_sys/directory_romfs.h
-            file_sys/directory_sdmc.h
+            file_sys/archive_systemsavedata.h
+            file_sys/directory_backend.h
+            file_sys/disk_archive.h
+            file_sys/file_backend.h
+            file_sys/ivfc_archive.h
+            hle/config_mem.h
+            hle/function_wrappers.h
+            hle/hle.h
+            hle/applets/applet.h
+            hle/applets/swkbd.h
             hle/kernel/address_arbiter.h
-            hle/kernel/archive.h
             hle/kernel/event.h
             hle/kernel/kernel.h
+            hle/kernel/memory.h
             hle/kernel/mutex.h
+            hle/kernel/process.h
+            hle/kernel/resource_limit.h
+            hle/kernel/semaphore.h
+            hle/kernel/session.h
             hle/kernel/shared_memory.h
             hle/kernel/thread.h
+            hle/kernel/timer.h
+            hle/kernel/vm_manager.h
+            hle/result.h
             hle/service/ac_u.h
-            hle/service/am_net.h
-            hle/service/apt_u.h
-            hle/service/boss_u.h
-            hle/service/cfg_i.h
-            hle/service/cfg_u.h
+            hle/service/act_u.h
+            hle/service/am/am.h
+            hle/service/am/am_app.h
+            hle/service/am/am_net.h
+            hle/service/am/am_sys.h
+            hle/service/am/am_u.h
+            hle/service/apt/apt.h
+            hle/service/apt/apt_a.h
+            hle/service/apt/apt_s.h
+            hle/service/apt/apt_u.h
+            hle/service/boss/boss.h
+            hle/service/boss/boss_p.h
+            hle/service/boss/boss_u.h
+            hle/service/cam/cam.h
+            hle/service/cam/cam_c.h
+            hle/service/cam/cam_q.h
+            hle/service/cam/cam_s.h
+            hle/service/cam/cam_u.h
+            hle/service/cecd/cecd.h
+            hle/service/cecd/cecd_s.h
+            hle/service/cecd/cecd_u.h
+            hle/service/cfg/cfg.h
+            hle/service/cfg/cfg_i.h
+            hle/service/cfg/cfg_s.h
+            hle/service/cfg/cfg_u.h
             hle/service/csnd_snd.h
             hle/service/dsp_dsp.h
             hle/service/err_f.h
-            hle/service/fs_user.h
-            hle/service/frd_u.h
+            hle/service/frd/frd.h
+            hle/service/frd/frd_a.h
+            hle/service/frd/frd_u.h
+            hle/service/fs/archive.h
+            hle/service/fs/fs_user.h
             hle/service/gsp_gpu.h
-            hle/service/hid_user.h
-            hle/service/ir_rst.h
-            hle/service/ir_u.h
+            hle/service/gsp_lcd.h
+            hle/service/hid/hid.h
+            hle/service/hid/hid_spvr.h
+            hle/service/hid/hid_user.h
+            hle/service/http_c.h
+            hle/service/ir/ir.h
+            hle/service/ir/ir_rst.h
+            hle/service/ir/ir_u.h
+            hle/service/ir/ir_user.h
+            hle/service/ldr_ro.h
             hle/service/mic_u.h
             hle/service/ndm_u.h
+            hle/service/news/news.h
+            hle/service/news/news_s.h
+            hle/service/news/news_u.h
+            hle/service/nim/nim.h
+            hle/service/nim/nim_aoc.h
+            hle/service/nim/nim_s.h
+            hle/service/nim/nim_u.h
+            hle/service/ns_s.h
             hle/service/nwm_uds.h
             hle/service/pm_app.h
-            hle/service/ptm_u.h
+            hle/service/ptm/ptm.h
+            hle/service/ptm/ptm_play.h
+            hle/service/ptm/ptm_sysm.h
+            hle/service/ptm/ptm_u.h
             hle/service/service.h
             hle/service/soc_u.h
             hle/service/srv.h
             hle/service/ssl_c.h
-            hle/config_mem.h
-            hle/result.h
-            hle/function_wrappers.h
-            hle/hle.h
+            hle/service/y2r_u.h
+            hle/shared_page.h
             hle/svc.h
             hw/gpu.h
             hw/hw.h
-            hw/ndma.h
+            hw/lcd.h
+            hw/y2r.h
+            loader/3dsx.h
             loader/elf.h
             loader/loader.h
             loader/ncch.h
-            loader/3dsx.h
-            core.h
-            core_timing.h
-            mem_map.h
+            tracer/recorder.h
+            tracer/citrace.h
+            memory.h
+            memory_setup.h
             settings.h
             system.h
             )

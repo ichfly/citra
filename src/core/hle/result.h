@@ -1,22 +1,25 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
-#include <cassert>
-#include <cstddef>
+#include <new>
 #include <type_traits>
 #include <utility>
 
-#include "common/common_types.h"
+#include "common/assert.h"
 #include "common/bit_field.h"
+#include "common/common_funcs.h"
+#include "common/common_types.h"
 
 // All the constants in this file come from http://3dbrew.org/wiki/Error_codes
 
 /// Detailed description of the error. This listing is likely incomplete.
 enum class ErrorDescription : u32 {
     Success = 0,
+    FS_NotFound = 100,
+    FS_NotFormatted = 340, ///< This is used by the FS service when creating a SaveData archive
     InvalidSection = 1000,
     TooLarge = 1001,
     NotAuthorized = 1002,
@@ -206,11 +209,11 @@ union ResultCode {
     }
 };
 
-inline bool operator==(const ResultCode a, const ResultCode b) {
+inline bool operator==(const ResultCode& a, const ResultCode& b) {
     return a.raw == b.raw;
 }
 
-inline bool operator!=(const ResultCode a, const ResultCode b) {
+inline bool operator!=(const ResultCode& a, const ResultCode& b) {
     return a.raw != b.raw;
 }
 
@@ -223,11 +226,6 @@ const ResultCode RESULT_SUCCESS(0);
 inline ResultCode UnimplementedFunction(ErrorModule module) {
     return ResultCode(ErrorDescription::NotImplemented, module,
             ErrorSummary::NotSupported, ErrorLevel::Permanent);
-}
-/// Returned when a function is passed an invalid handle.
-inline ResultCode InvalidHandle(ErrorModule module) {
-    return ResultCode(ErrorDescription::InvalidHandle, module,
-            ErrorSummary::InvalidArgument, ErrorLevel::Permanent);
 }
 
 /**
@@ -269,7 +267,7 @@ public:
     ResultVal(ResultCode error_code = ResultCode(-1))
         : result_code(error_code)
     {
-        assert(error_code.IsError());
+        ASSERT(error_code.IsError());
         UpdateDebugPtr();
     }
 
@@ -309,14 +307,14 @@ public:
     }
 
     ResultVal& operator=(const ResultVal& o) {
-        if (*this) {
-            if (o) {
+        if (!empty()) {
+            if (!o.empty()) {
                 *GetPointer() = *o.GetPointer();
             } else {
                 GetPointer()->~T();
             }
         } else {
-            if (o) {
+            if (!o.empty()) {
                 new (&storage) T(*o.GetPointer());
             }
         }
@@ -332,7 +330,7 @@ public:
      */
     template <typename... Args>
     void emplace(ResultCode success_code, Args&&... args) {
-        assert(success_code.IsSuccess());
+        ASSERT(success_code.IsSuccess());
         if (!empty()) {
             GetPointer()->~T();
         }
@@ -362,30 +360,40 @@ public:
         return !empty() ? *GetPointer() : std::move(value);
     }
 
+    /// Asserts that the result succeeded and returns a reference to it.
+    T& Unwrap() {
+        ASSERT_MSG(Succeeded(), "Tried to Unwrap empty ResultVal");
+        return **this;
+    }
+
+    T&& MoveFrom() {
+        return std::move(Unwrap());
+    }
+
 private:
     typedef typename std::aligned_storage<sizeof(T), std::alignment_of<T>::value>::type StorageType;
 
     StorageType storage;
     ResultCode result_code;
-#if _DEBUG
+#ifdef _DEBUG
     // The purpose of this pointer is to aid inspecting the type with a debugger, eliminating the
     // need to cast `storage` to a pointer or pay attention to `result_code`.
     const T* debug_ptr;
 #endif
 
     void UpdateDebugPtr() {
-#if _DEBUG
+#ifdef _DEBUG
         debug_ptr = empty() ? nullptr : static_cast<const T*>(static_cast<const void*>(&storage));
 #endif
     }
 
     const T* GetPointer() const {
-        assert(!empty());
+        ASSERT(!empty());
         return static_cast<const T*>(static_cast<const void*>(&storage));
     }
 
     T* GetPointer() {
-        assert(!empty());
+        ASSERT(!empty());
         return static_cast<T*>(static_cast<void*>(&storage));
     }
 };
@@ -398,3 +406,15 @@ template <typename T, typename... Args>
 ResultVal<T> MakeResult(Args&&... args) {
     return ResultVal<T>::WithCode(RESULT_SUCCESS, std::forward<Args>(args)...);
 }
+
+/**
+ * Check for the success of `source` (which must evaluate to a ResultVal). If it succeeds, unwraps
+ * the contained value and assigns it to `target`, which can be either an l-value expression or a
+ * variable declaration. If it fails the return code is returned from the current function. Thus it
+ * can be used to cascade errors out, achieving something akin to exception handling.
+ */
+#define CASCADE_RESULT(target, source) \
+        auto CONCAT2(check_result_L, __LINE__) = source; \
+        if (CONCAT2(check_result_L, __LINE__).Failed()) \
+            return CONCAT2(check_result_L, __LINE__).Code(); \
+        target = std::move(*CONCAT2(check_result_L, __LINE__))

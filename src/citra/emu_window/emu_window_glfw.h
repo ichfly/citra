@@ -1,8 +1,10 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
+
+#include <utility>
 
 #include "common/emu_window.h"
 
@@ -26,6 +28,10 @@ public:
     void DoneCurrent() override;
 
     static void OnKeyEvent(GLFWwindow* win, int key, int scancode, int action, int mods);
+
+    static void OnMouseButtonEvent(GLFWwindow* window, int button, int action, int mods);
+
+    static void OnCursorPosEvent(GLFWwindow* window, double x, double y);
 
     /// Whether the window is still open, and a close request hasn't yet been sent
     const bool IsOpen();

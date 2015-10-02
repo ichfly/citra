@@ -1,12 +1,15 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
 #pragma once
 
 #include <cstddef>
+#include <string>
 
 #include "common/bit_field.h"
+#include "common/common_types.h"
+
 #include "core/hle/service/service.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -28,7 +31,8 @@ enum class InterruptId : u8 {
 /// GSP command ID
 enum class CommandId : u32 {
     REQUEST_DMA            = 0x00,
-    SET_COMMAND_LIST_LAST  = 0x01,
+    /// Submits a commandlist for execution by the GPU.
+    SUBMIT_GPU_CMDLIST = 0x01,
 
     // Fills a given memory range with a particular value
     SET_MEMORY_FILL        = 0x02,
@@ -39,27 +43,22 @@ enum class CommandId : u32 {
 
     // Conceptionally similar to SET_DISPLAY_TRANSFER and presumable uses the same hardware path
     SET_TEXTURE_COPY       = 0x04,
-
-    SET_COMMAND_LIST_FIRST = 0x05,
+    /// Flushes up to 3 cache regions in a single command.
+    CACHE_FLUSH = 0x05,
 };
 
 /// GSP thread interrupt relay queue
 struct InterruptRelayQueue {
-    union {
-        u32 hex;
+    // Index of last interrupt in the queue
+    u8 index;
+    // Number of interrupts remaining to be processed by the userland code
+    u8 number_interrupts;
+    // Error code - zero on success, otherwise an error has occurred
+    u8 error_code;
+    u8 padding1;
 
-        // Index of last interrupt in the queue
-        BitField<0,8,u32>   index;
-
-        // Number of interrupts remaining to be processed by the userland code
-        BitField<8,8,u32>   number_interrupts;
-
-        // Error code - zero on success, otherwise an error has occurred
-        BitField<16,8,u32>  error_code;
-    };
-
-    u32 unk0;
-    u32 unk1;
+    u32 missed_PDC0;
+    u32 missed_PDC1;
 
     InterruptId slot[0x34];   ///< Interrupt ID slots
 };
@@ -108,15 +107,22 @@ struct Command {
         struct {
             u32 address;
             u32 size;
-        } set_command_list_last;
+            u32 flags;
+            u32 unused[3];
+            u32 do_flush;
+        } submit_gpu_cmdlist;
 
         struct {
             u32 start1;
             u32 value1;
             u32 end1;
+
             u32 start2;
             u32 value2;
             u32 end2;
+
+            u16 control1;
+            u16 control2;
         } memory_fill;
 
         struct {
@@ -125,7 +131,23 @@ struct Command {
             u32 in_buffer_size;
             u32 out_buffer_size;
             u32 flags;
-        } image_copy;
+        } display_transfer;
+
+        struct {
+            u32 in_buffer_address;
+            u32 out_buffer_address;
+            u32 size;
+            u32 in_width_gap;
+            u32 out_width_gap;
+            u32 flags;
+        } texture_copy;
+
+        struct {
+            struct {
+                u32 address;
+                u32 size;
+            } regions[3];
+        } cache_flush;
 
         u8 raw_data[0x1C];
     };
@@ -158,19 +180,12 @@ static_assert(sizeof(CommandBuffer) == 0x200, "CommandBuffer struct has incorrec
 /// Interface to "srv:" service
 class Interface : public Service::Interface {
 public:
-
     Interface();
+    ~Interface() override;
 
-    ~Interface();
-
-    /**
-     * Gets the string port name used by CTROS for the service
-     * @return Port name of service
-     */
     std::string GetPortName() const override {
         return "gsp::Gpu";
     }
-
 };
 
 /**
@@ -179,4 +194,14 @@ public:
  */
 void SignalInterrupt(InterruptId interrupt_id);
 
+void SetBufferSwap(u32 screen_id, const FrameBufferInfo& info);
+
+/**
+ * Retrieves the framebuffer info stored in the GSP shared memory for the
+ * specified screen index and thread id.
+ * @param thread_id GSP thread id of the process that accesses the structure that we are requesting.
+ * @param screen_index Index of the screen we are requesting (Top = 0, Bottom = 1).
+ * @returns FramebufferUpdate Information about the specified framebuffer.
+ */
+FrameBufferUpdate* GetFrameBufferInfo(u32 thread_id, u32 screen_index);
 } // namespace

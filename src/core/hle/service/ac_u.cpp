@@ -1,8 +1,8 @@
 // Copyright 2014 Citra Emulator Project
-// Licensed under GPLv2
+// Licensed under GPLv2 or any later version
 // Refer to the license.txt file included.
 
-#include "common/log.h"
+#include "common/logging/log.h"
 #include "core/hle/hle.h"
 #include "core/hle/service/ac_u.h"
 
@@ -17,8 +17,8 @@ namespace AC_U {
  *      1 : Result of function, 0 on success, otherwise error code
  *      2 : Output connection type, 0 = none, 1 = Old3DS Internet, 2 = New3DS Internet.
  */
-void GetWifiStatus(Service::Interface* self) {
-    u32* cmd_buff = Service::GetCommandBuffer();
+static void GetWifiStatus(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
 
     // TODO(purpasmart96): This function is only a stub,
     // it returns a valid result without implementing full functionality.
@@ -26,7 +26,7 @@ void GetWifiStatus(Service::Interface* self) {
     cmd_buff[1] = 0; // No error
     cmd_buff[2] = 0; // Connection type set to none
 
-    WARN_LOG(KERNEL, "(STUBBED) called");
+    LOG_WARNING(Service_AC, "(STUBBED) called");
 }
 
 const Interface::FunctionInfo FunctionTable[] = {
@@ -53,10 +53,7 @@ const Interface::FunctionInfo FunctionTable[] = {
 // Interface class
 
 Interface::Interface() {
-    Register(FunctionTable, ARRAY_SIZE(FunctionTable));
-}
-
-Interface::~Interface() {
+    Register(FunctionTable);
 }
 
 } // namespace
